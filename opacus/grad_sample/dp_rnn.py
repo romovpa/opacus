@@ -3,7 +3,7 @@
 
 
 import torch
-from opacus.layers.dp_rnn import RNNLinear
+from opacus.layers.rnn import RNNLinear
 
 from .utils import create_or_accumulate_grad_sample, register_grad_sampler
 

@@ -5,7 +5,7 @@ from typing import Iterable, List, Tuple
 
 import torch
 import torch.nn as nn
-from opacus.layers.dp_rnn import DPRNNBase, DPRNNCellBase, RNNLinear
+from opacus.layers.rnn import RNNBase, RNNCellBase, RNNLinear
 from opacus.utils.module_inspection import requires_grad
 
 
@@ -269,7 +269,7 @@ class GradSampleModule(nn.Module):
     def is_supported(cls, module: nn.Module) -> bool:
         """Check if this module is supported"""
         return type(module) in cls.GRAD_SAMPLERS or isinstance(
-            module, (DPRNNBase, DPRNNCellBase)
+            module, (RNNBase, RNNCellBase)
         )
 
 

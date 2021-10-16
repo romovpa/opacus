@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from opacus import PrivacyEngine, privacy_analysis
 from opacus.dp_model_inspector import DPModelInspector, IncompatibleModuleException
-from opacus.layers.dp_multihead_attention import SequenceBias
+from opacus.layers.activation import SequenceBias
 from opacus.utils import stats
 from opacus.utils.module_inspection import ModelInspector
 from opacus.utils.module_modification import (

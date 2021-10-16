@@ -4,6 +4,7 @@
 import torch
 import torch.nn as nn
 
+from torch.nn.parallel import DistributedDataParallel
 
 def average_gradients(model):
     world_size = torch.distributed.get_world_size()
