@@ -39,7 +39,7 @@ class RenameParamsMixin:
         {'weights': tensor([0., 0., 0., 0., 0.])}
     """
 
-    def set_rename_map(self, rename_map: Dict[str, str]):
+    def set_rename_map(self: nn.Module, rename_map: Dict[str, str]):
         """
         Initializes internal state. Subclass this instead of ``torch.nn.Module`` whenever you need
         to rename your model's state.
@@ -53,19 +53,19 @@ class RenameParamsMixin:
 
         self._register_state_dict_hook(filter_out_old_keys)
 
-    def _register_renamed_parameters(self):
+    def _register_renamed_parameters(self: nn.Module):
         """
         Internal function. This function simply registers parameters under their new name. They will
         automatically mask their duplicates coming from submodules. This trick works because
         self.parameters() proceeds recursively from the top, going into submodules after processing
         items at the current level, and will not return duplicates.
         """
-        for old_name, param in super().named_parameters():
+        for old_name, param in self.super().named_parameters():
             if old_name in self.old_to_new:
                 new_name = self.old_to_new[old_name]
                 self.register_parameter(new_name, param)
 
-    def __setattr__(self, name: str, value: Union[Tensor, nn.Module]) -> None:
+    def __setattr__(self: nn.Module, name: str, value: Union[Tensor, nn.Module]) -> None:
         """
         Whenever you set an attribute, eg `self.linear`, this is called to actually register it in
         any nn.Module. We rely on the masking trick explained in the docs for
@@ -82,7 +82,7 @@ class RenameParamsMixin:
             pass
 
     def load_state_dict(
-        self,
+        self: nn.Module,
         state_dict: Dict[str, Tensor],
         strict: bool = True,
     ):
@@ -96,7 +96,7 @@ class RenameParamsMixin:
         # that some keys are missing (the "old" keys). We can safely ignore those and process them
         # accordingly
 
-        missing_keys, unexpected_keys = super().load_state_dict(
+        missing_keys, unexpected_keys = self.super().load_state_dict(
             state_dict, strict=False
         )
         missing_keys = [k for k in missing_keys if k not in self.old_to_new]

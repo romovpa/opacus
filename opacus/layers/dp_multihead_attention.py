@@ -131,7 +131,7 @@ class DPMultiheadAttention(RenameParamsMixin, nn.Module):
             #
             "*linear.bias": "in_proj_bias",
         }
-        self.set_rename_map(rename_map)
+        #self.set_rename_map(rename_map)
 
     def load_state_dict(self, state_dict):
         r"""
