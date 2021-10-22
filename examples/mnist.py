@@ -60,7 +60,7 @@ def train(args, model, device, train_loader, optimizer, privacy_engine, epoch):
         losses.append(loss.item())
 
     if not args.disable_dp:
-        epsilon, best_alpha = privacy_engine.get_privacy_spent(args.delta)
+        epsilon, best_alpha = privacy_engine.accountant.get_privacy_spent(args.delta)
         print(
             f"Train Epoch: {epoch} \t"
             f"Loss: {np.mean(losses):.6f} "
@@ -118,6 +118,12 @@ def main():
         default=1024,
         metavar="TB",
         help="input batch size for testing",
+    )
+    parser.add_argument(
+        "--num-workers",
+        type=int,
+        default=1,
+        help="number of workers used by data loader",
     )
     parser.add_argument(
         "-n",
@@ -210,7 +216,7 @@ def main():
             ),
         ),
         batch_size=args.batch_size,
-        num_workers=1,
+        num_workers=args.num_workers,
         pin_memory=True,
     )
     test_loader = torch.utils.data.DataLoader(
@@ -226,7 +232,7 @@ def main():
         ),
         batch_size=args.test_batch_size,
         shuffle=True,
-        num_workers=1,
+        num_workers=args.num_workers,
         pin_memory=True,
     )
     run_results = []
