@@ -24,11 +24,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchmetrics
-from opacus.lightning import OpacusCallback
+from opacus.lightning import LightningPrivacyEngine
 from pytorch_lightning.utilities.cli import LightningCLI
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-
+from pl_bolts.datamodules import MNISTDataModule
 
 warnings.filterwarnings("ignore")
 
@@ -38,7 +38,7 @@ class LitSampleConvNetClassifier(pl.LightningModule):
         self,
         lr: float = 0.1,
     ):
-        """A simple conv-net for classifying MNIST with differential privacy
+        """A simple conv-net for classifying MNIST
 
         Args:
             lr: Learning rate
@@ -53,9 +53,6 @@ class LitSampleConvNetClassifier(pl.LightningModule):
         self.conv2 = nn.Conv2d(16, 32, 4, 2)
         self.fc1 = nn.Linear(32 * 4 * 4, 32)
         self.fc2 = nn.Linear(32, 10)
-
-        # Privacy engine
-        self.privacy_engine = None  # Created before training
 
         # Metrics
         self.test_accuracy = torchmetrics.Accuracy()
@@ -92,85 +89,37 @@ class LitSampleConvNetClassifier(pl.LightningModule):
         return loss
 
 
-
-class MNISTDataModule(pl.LightningDataModule):
-    def __init__(
-        self,
-        test_batch_size: int = 1000,
-        data_dir: Optional[str] = "../mnist",
-    ):
-        """MNIST DataModule with DP-ready batch sampling
-
-        Args:
-            data_dir: A path where MNIST is stored
-            test_batch_size: Size of batch for predicting on test
-            sample_rate: Sample rate used for batch construction
-            secure_rng: Use secure random number generator
-        """
-        super().__init__()
-        self.data_root = data_dir
-        self.dataloader_kwargs = {"num_workers": 1, "pin_memory": True}
-
-        self.save_hyperparameters()
-
-    @property
-    def transform(self):
-        return transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,)),
-            ]
-        )
-
-    def prepare_data(self) -> None:
-        datasets.MNIST(self.data_root, download=True)
-
-    def train_dataloader(self):
-        train_dataset = datasets.MNIST(
-            self.data_root,
-            train=True,
-            download=False,
-            transform=self.transform,
-        )
-        return DataLoader(
-            train_dataset,
-            **self.dataloader_kwargs,
-        )
-
-    def test_dataloader(self):
-        return DataLoader(
-            datasets.MNIST(
-                self.data_root,
-                train=False,
-                download=False,
-                transform=self.transform,
-            ),
-            batch_size=self.hparams.test_batch_size,
-            shuffle=True,
-            **self.dataloader_kwargs,
-        )
-
-
 def main():
+    # Look ma, no privacy burden here!
     data = MNISTDataModule()
     model = LitSampleConvNetClassifier()
 
-    privacy_callback = OpacusCallback()
-    privacy_data = privacy_callback.wrap_datamodule(data)
+    # Here we add some privacy
+    privacy_engine = LightningPrivacyEngine(
+        delta=1e-5,
+        sample_rate=0.001,
+        # etc
+    )
+    privacy_data = privacy_engine.wrap_datamodule(data)
 
+    # Now we go
     trainer = pl.Trainer(
         max_epochs=2,
         enable_model_summary=False,
-        callbacks=[privacy_callback],
+        callbacks=[privacy_engine],
     )
     trainer.fit(model, privacy_data)
 
-    trainer.test(model, data)
-    trainer.test(model, privacy_data)  # both work
+    # TODO:
+    # trainer.fit(model, data)
+    # Must crash with the message: either remove PrivacyEngine or use certified data modules
 
+    trainer.test(model, data)
+    trainer.test(model, privacy_data)  # identical
 
 
 def cli_main():
+    # TODO: add optional LightningPrivacyEngine() callback
     cli = LightningCLI(
         LitSampleConvNetClassifier,
         MNISTDataModule,

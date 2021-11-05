@@ -71,7 +71,7 @@ class DPLightningDataModule(pl.LightningDataModule):
         return self.datamodule.on_after_batch_transfer(batch, dataloader_idx)
 
 
-class OpacusCallback(pl.Callback):
+class LightningPrivacyEngine(pl.Callback):
 
     def __init__(
         self,
