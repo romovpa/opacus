@@ -8,6 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
+from .param_rename import RenameParamsMixin
+
 
 class SequenceBias(nn.Module):
     r"""
@@ -50,7 +52,7 @@ class SequenceBias(nn.Module):
         return torch.cat([x, self.bias.repeat(1, bsz, 1)])
 
 
-class DPMultiheadAttention(nn.Module):
+class DPMultiheadAttention(RenameParamsMixin, nn.Module):
     r"""
     This is DP-friendly implementation of nn.MultiheadAttention.
     For full reference see original module refer to
@@ -72,7 +74,7 @@ class DPMultiheadAttention(nn.Module):
         kdim=None,
         vdim=None,
     ):
-        super(DPMultiheadAttention, self).__init__()
+        super().__init__()
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
@@ -100,6 +102,36 @@ class DPMultiheadAttention(nn.Module):
         self.add_zero_attn = add_zero_attn
 
         self.dropout = nn.Dropout(dropout)
+
+        rename_map = {
+            "qlinear.weight": "q_proj_weight",
+            "klinear.weight": "k_proj_weight",
+            "vlinear.weight": "v_proj_weight",
+            "out_proj.weight": "out_proj.weight",
+            "out_proj.bias": "out_proj.bias",
+
+            # TODO: shape doesn't match
+            #
+            # seq_bias_k.bias torch.Size([10])
+            # seq_bias_v.bias torch.Size([10])
+            #
+            # bias_k torch.Size([1, 1, 10])
+            # bias_v torch.Size([1, 1, 10])
+            #
+            "seq_bias_k.bias": "bias_k",
+            "seq_bias_v.bias": "bias_v",
+
+            # TODO: requires merging 3 x Linear.bias into one
+            #
+            # in_proj_bias torch.Size([30])
+            #
+            # qlinear.bias torch.Size([10])
+            # klinear.bias torch.Size([10])
+            # vlinear.bias torch.Size([10])
+            #
+            "*linear.bias": "in_proj_bias",
+        }
+        #self.set_rename_map(rename_map)
 
     def load_state_dict(self, state_dict):
         r"""
