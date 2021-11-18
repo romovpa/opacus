@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 import torch
 import torch.nn as nn
-from opacus.layers.dp_rnn import DPRNNBase, DPRNNCellBase, RNNLinear
+from opacus.layers.dp_rnn import DPRNNBase, DPRNNCellBase
 from opacus.utils.module_utils import requires_grad, trainable_modules
 
 
@@ -318,8 +318,7 @@ class GradSampleModule(nn.Module):
                 " run forward after add_hooks(model)"
             )
 
-        # TODO: that's not right; DPLSTM isn't always batch_first=False
-        batch_dim = 0 if batch_first or type(module) is RNNLinear else 1
+        batch_dim = 0 if batch_first else 1
 
         activations = module.activations.pop()
 
