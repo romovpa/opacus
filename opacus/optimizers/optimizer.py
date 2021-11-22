@@ -168,6 +168,8 @@ class DPOptimizer(Optimizer):
         per_param_norms = [
             g.view(len(g), -1).norm(2, dim=-1) for g in self.grad_samples
         ]
+
+        str_norms = ' '.join([str(list(p.shape)) for p in per_param_norms])
         per_sample_norms = torch.stack(per_param_norms, dim=1).norm(2, dim=1)
         per_sample_clip_factor = (self.max_grad_norm / (per_sample_norms + 1e-6)).clamp(
             max=1.0

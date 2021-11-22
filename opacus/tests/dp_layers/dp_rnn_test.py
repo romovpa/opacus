@@ -31,7 +31,7 @@ def rnn_train_fn(
     loss.backward()
 
 
-class DPLSTM_test(DPModules_test):
+class DPRNN_test(DPModules_test):
     @given(
         mode=st.one_of(st.just("rnn"), st.just("gru"), st.just("lstm")),
         batch_size=st.integers(1, 5),

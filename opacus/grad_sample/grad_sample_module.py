@@ -318,7 +318,8 @@ class GradSampleModule(nn.Module):
                 " run forward after add_hooks(model)"
             )
 
-        batch_dim = 0 if batch_first else 1
+        # TODO(remove before merge): Fix this
+        batch_dim = 0 if batch_first or type(module) is nn.Linear else 1
 
         activations = module.activations.pop()
 
