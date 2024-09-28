@@ -24,23 +24,6 @@ def apply_permutation(tensor: Tensor, dim: int, permutation: Optional[Tensor]):
     return tensor.index_select(dim, permutation)
 
 
-class RNNLinear(nn.Linear):
-    """Applies a linear transformation to the incoming data: :math:`y = xA^T + b`
-
-    This module is the same as a ``torch.nn.Linear``` layer, except that in the backward pass
-    the grad_samples get accumulated (instead of being concatenated as in the standard
-    nn.Linear).
-
-    When used with `PackedSequence`s, additional attribute `max_batch_len` is defined to determine
-    the size of per-sample grad tensor.
-    """
-
-    max_batch_len: int
-
-    def __init__(self, in_features: int, out_features: int, bias: bool = True):
-        super().__init__(in_features, out_features, bias)
-
-
 class DPRNNCellBase(nn.Module):
     has_cell_state: bool = False
 
@@ -52,8 +35,8 @@ class DPRNNCellBase(nn.Module):
         self.hidden_size = hidden_size
         self.bias = bias
 
-        self.ih = RNNLinear(input_size, num_chunks * hidden_size, bias)
-        self.hh = RNNLinear(hidden_size, num_chunks * hidden_size, bias)
+        self.ih = nn.Linear(input_size, num_chunks * hidden_size, bias)
+        self.hh = nn.Linear(hidden_size, num_chunks * hidden_size, bias)
 
         self.reset_parameters()
 
@@ -556,6 +539,7 @@ class DPRNNBase(RenameParamsMixin, nn.Module):
         of each of these lists will be iterated over.
 
         Example:
+            ```
             num_layers = 3
             bidirectional = True
 
@@ -569,6 +553,7 @@ class DPRNNBase(RenameParamsMixin, nn.Module):
             # 1 1 h[3]
             # 2 0 h[4]
             # 2 1 h[5]
+            ```
 
         """
         for layer in range(self.num_layers):
@@ -603,7 +588,7 @@ class DPRNNBase(RenameParamsMixin, nn.Module):
                 cell_name = f"l{layer}{suffix}"
                 setattr(self, cell_name, cell)
 
-                components = ["weight"] + ["bias" if self.bias else []]
+                components = ["weight"] + (["bias"] if self.bias else [])
                 matrices = ["ih", "hh"]
                 for c in components:
                     for m in matrices:
